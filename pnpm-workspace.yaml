@@ -1,0 +1,10 @@
+packages:
+  - "client"
+  - "server"
+
+# Built dependencies allowed to run install scripts
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver
+  - bcrypt
+  - esbuild
