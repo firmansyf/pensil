@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { listPosts, listCategories } from "@/lib/api";
 import { PostCard } from "@/components/post-card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { Category, Post } from "@/lib/types";
 
 export default async function HomePage(props: {
@@ -24,25 +26,34 @@ export default async function HomePage(props: {
     apiDown = true;
   }
 
+  const [featured, ...rest] = posts;
+  const activeCategory = categories.find((c) => c.slug === category);
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <section className="mb-10">
-        <h1 className="text-4xl font-bold tracking-tight">Pensil</h1>
-        <p className="text-muted-foreground mt-2 max-w-2xl">
-          Kumpulan blog random — tempat semua tulisan, dari catatan teknis sampai curhat tengah
-          malam.
+    <div className="mx-auto max-w-5xl px-4 py-12 sm:py-16">
+      <section className="mb-12">
+        <span className="text-muted-foreground inline-flex items-center gap-1.5 text-sm font-medium">
+          <Sparkles className="size-4" />
+          Kumpulan tulisan
+        </span>
+        <h1 className="from-foreground to-foreground/55 mt-3 bg-gradient-to-br bg-clip-text text-5xl font-bold tracking-tight text-transparent sm:text-6xl">
+          Pensil
+        </h1>
+        <p className="text-muted-foreground mt-4 max-w-2xl text-lg leading-relaxed">
+          Tempat semua tulisan random — dari catatan teknis sampai curhat tengah malam. Pilih satu,
+          tarik napas, dan baca pelan-pelan.
         </p>
       </section>
 
       {categories.length > 0 && (
-        <div className="mb-8 flex flex-wrap gap-2">
-          <Link href="/">
-            <Badge variant={!category ? "default" : "outline"}>Semua</Badge>
-          </Link>
+        <div className="mb-10 flex flex-wrap gap-2">
+          <CategoryPill href="/" active={!category}>
+            Semua
+          </CategoryPill>
           {categories.map((c) => (
-            <Link key={c.id} href={`/?category=${c.slug}`}>
-              <Badge variant={category === c.slug ? "default" : "outline"}>{c.name}</Badge>
-            </Link>
+            <CategoryPill key={c.id} href={`/?category=${c.slug}`} active={category === c.slug}>
+              {c.name}
+            </CategoryPill>
           ))}
         </div>
       )}
@@ -55,24 +66,60 @@ export default async function HomePage(props: {
       ) : posts.length === 0 ? (
         <EmptyState
           title="Belum ada tulisan"
-          desc="Tulisan yang dipublikasikan akan muncul di sini."
+          desc={
+            q || activeCategory
+              ? "Tidak ada tulisan yang cocok. Coba kategori atau kata kunci lain."
+              : "Tulisan yang dipublikasikan akan muncul di sini."
+          }
         />
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
+        <div className="space-y-12">
+          <PostCard post={featured} featured />
+
+          {rest.length > 0 && (
+            <section>
+              <h2 className="mb-6 text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+                Tulisan lainnya
+              </h2>
+              <div className="grid gap-6 sm:grid-cols-2">
+                {rest.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </div>
   );
 }
 
+function CategoryPill({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link href={href}>
+      <Badge
+        variant={active ? "default" : "outline"}
+        className={cn("px-3 py-1 text-sm transition-colors", !active && "hover:bg-muted")}
+      >
+        {children}
+      </Badge>
+    </Link>
+  );
+}
+
 function EmptyState({ title, desc }: { title: string; desc: string }) {
   return (
-    <div className="border-border/60 rounded-xl border border-dashed p-12 text-center">
+    <div className="border-border/60 rounded-2xl border border-dashed p-16 text-center">
       <h2 className="font-semibold">{title}</h2>
-      <p className="text-muted-foreground mt-1 text-sm">{desc}</p>
+      <p className="text-muted-foreground mx-auto mt-1 max-w-md text-sm">{desc}</p>
     </div>
   );
 }

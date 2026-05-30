@@ -1,53 +1,85 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ImageIcon } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar } from "@/components/avatar";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, stripHtml } from "@/lib/utils";
+import { cn, formatDate, readingTime, stripHtml } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 
-export function PostCard({ post }: { post: Post }) {
+export function PostCard({ post, featured = false }: { post: Post; featured?: boolean }) {
+  const href = `/blog/${post.slug}`;
+  const excerpt = post.excerpt ?? stripHtml(post.content).slice(0, featured ? 220 : 140);
+
   return (
-    <Card className="overflow-hidden pt-0 transition-shadow hover:shadow-md">
+    <article
+      className={cn(
+        "group bg-card relative flex flex-col overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+        featured && "sm:grid sm:grid-cols-2 sm:items-stretch",
+      )}
+    >
       <Link
-        href={`/blog/${post.slug}`}
-        className="bg-muted relative block aspect-video w-full overflow-hidden"
+        href={href}
+        className={cn(
+          "bg-muted relative block overflow-hidden",
+          featured ? "aspect-[16/10] sm:aspect-auto sm:h-full" : "aspect-[16/10]",
+        )}
       >
         {post.coverImage ? (
           <Image
             src={post.coverImage}
             alt={post.title}
             fill
-            sizes="(max-width: 640px) 100vw, 50vw"
-            className="object-cover transition-transform duration-300 hover:scale-105"
+            sizes={featured ? "(max-width: 640px) 100vw, 50vw" : "(max-width: 640px) 100vw, 50vw"}
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="text-muted-foreground/40 flex h-full items-center justify-center">
-            <ImageIcon className="size-10" />
+          <div className="text-muted-foreground/30 flex h-full items-center justify-center">
+            <ImageIcon className="size-12" />
           </div>
         )}
+        {post.category && (
+          <span className="absolute left-3 top-3">
+            <Badge className="bg-background/80 text-foreground border-transparent shadow-sm backdrop-blur">
+              {post.category.name}
+            </Badge>
+          </span>
+        )}
       </Link>
-      <CardHeader>
+
+      <div className={cn("flex flex-1 flex-col p-5", featured && "sm:justify-center sm:p-8")}>
         <div className="text-muted-foreground flex items-center gap-2 text-xs">
-          {post.category && <Badge variant="secondary">{post.category.name}</Badge>}
           <span>{formatDate(post.publishedAt ?? post.createdAt)}</span>
+          <span className="bg-muted-foreground/40 size-1 rounded-full" />
+          <span>{readingTime(post.content)}</span>
         </div>
-        <CardTitle className="text-xl">
-          <Link href={`/blog/${post.slug}`} className="hover:underline">
+
+        <h3
+          className={cn(
+            "mt-2 font-bold tracking-tight",
+            featured ? "text-2xl sm:text-3xl" : "text-xl",
+          )}
+        >
+          <Link href={href} className="decoration-foreground/30 underline-offset-4 hover:underline">
             {post.title}
           </Link>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground line-clamp-3 text-sm">
-          {post.excerpt ?? stripHtml(post.content).slice(0, 160)}
+        </h3>
+
+        <p
+          className={cn(
+            "text-muted-foreground mt-3 text-sm",
+            featured ? "line-clamp-4" : "line-clamp-3",
+          )}
+        >
+          {excerpt}
         </p>
-        <div className="text-muted-foreground mt-4 flex items-center gap-2 text-xs">
-          <span>oleh {post.author?.name ?? "Anonim"}</span>
-          <span>·</span>
+
+        <div className="text-muted-foreground mt-auto flex items-center gap-2 pt-5 text-xs">
+          <Avatar name={post.author?.name} src={post.author?.avatarUrl} className="size-6" />
+          <span className="text-foreground font-medium">{post.author?.name ?? "Anonim"}</span>
+          <span className="bg-muted-foreground/40 size-1 rounded-full" />
           <span>{post.viewCount} kali dibaca</span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }

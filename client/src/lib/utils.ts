@@ -21,6 +21,14 @@ export function stripHtml(html: string | null | undefined): string {
     .trim();
 }
 
+/** Estimasi waktu baca dari konten HTML (≈200 kata/menit). */
+export function readingTime(html: string | null | undefined): string {
+  const text = stripHtml(html);
+  const words = text ? text.split(/\s+/).length : 0;
+  const minutes = Math.max(1, Math.ceil(words / 200));
+  return `${minutes} menit baca`;
+}
+
 /** Format tanggal singkat dalam Bahasa Indonesia. */
 export function formatDate(date: string | Date | null | undefined) {
   if (!date) return "—";
