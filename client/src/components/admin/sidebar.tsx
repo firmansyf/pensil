@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/posts", label: "Tulisan", icon: FileText },
-  { href: "/admin/posts/new", label: "Tulisan Baru", icon: PlusCircle },
+  // { href: "/admin/posts/new", label: "Tulisan Baru", icon: PlusCircle },
   { href: "/admin/categories", label: "Kategori", icon: FolderTree },
 ];
 

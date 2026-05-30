@@ -1,9 +1,10 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getPost } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
+import { formatDate, stripHtml } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 
 async function fetchPost(slug: string): Promise<Post | null> {
@@ -23,7 +24,7 @@ export async function generateMetadata(props: {
   if (!post) return { title: "Tulisan tidak ditemukan" };
   return {
     title: post.title,
-    description: post.excerpt ?? post.content.slice(0, 150),
+    description: post.excerpt ?? stripHtml(post.content).slice(0, 150),
   };
 }
 
@@ -49,7 +50,23 @@ export default async function BlogDetailPage(props: { params: Promise<{ slug: st
         </p>
       </header>
 
-      <div className="mt-8 whitespace-pre-wrap leading-relaxed">{post.content}</div>
+      {post.coverImage && (
+        <div className="relative mt-8 aspect-video w-full overflow-hidden rounded-xl border">
+          <Image
+            src={post.coverImage}
+            alt={post.title}
+            fill
+            sizes="(max-width: 768px) 100vw, 672px"
+            priority
+            className="object-cover"
+          />
+        </div>
+      )}
+
+      <div
+        className="post-content mt-8 leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: post.content }}
+      />
     </article>
   );
 }

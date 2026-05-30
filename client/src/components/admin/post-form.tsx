@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { ImagePlus, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { createPost, updatePost, listCategories } from "@/lib/api";
 import { getToken } from "@/lib/auth";
+import { uploadConfigured, uploadImage } from "@/lib/upload";
+import { stripHtml } from "@/lib/utils";
 import type { Category, Post } from "@/lib/types";
 
 export function PostForm({ post }: { post?: Post }) {
@@ -15,6 +20,8 @@ export function PostForm({ post }: { post?: Post }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     title: post?.title ?? "",
@@ -35,11 +42,31 @@ export function PostForm({ post }: { post?: Post }) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const url = await uploadImage(file);
+      update("coverImage", url);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const token = getToken();
     if (!token) {
       router.push("/login?redirect=/admin/posts");
+      return;
+    }
+    if (!stripHtml(form.content)) {
+      setError("Konten tidak boleh kosong.");
       return;
     }
     setSubmitting(true);
@@ -100,15 +127,8 @@ export function PostForm({ post }: { post?: Post }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="content">Konten</Label>
-        <Textarea
-          id="content"
-          value={form.content}
-          onChange={(e) => update("content", e.target.value)}
-          placeholder="Tulis isi blog di sini…"
-          rows={12}
-          required
-        />
+        <Label>Konten</Label>
+        <RichTextEditor value={form.content} onChange={(html) => update("content", html)} />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -144,17 +164,70 @@ export function PostForm({ post }: { post?: Post }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="coverImage">URL Gambar Sampul</Label>
-        <Input
-          id="coverImage"
-          value={form.coverImage ?? ""}
-          onChange={(e) => update("coverImage", e.target.value)}
-          placeholder="https://…"
+        <Label>Gambar Sampul</Label>
+
+        {form.coverImage ? (
+          <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
+            <Image
+              src={form.coverImage}
+              alt="Pratinjau gambar sampul"
+              fill
+              sizes="(max-width: 768px) 100vw, 672px"
+              className="object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => update("coverImage", "")}
+              className="bg-background/80 absolute right-2 top-2 rounded-md border p-1 backdrop-blur transition-colors hover:bg-background"
+              aria-label="Hapus gambar"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading || !uploadConfigured}
+            className="border-input text-muted-foreground hover:bg-muted/40 flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="size-5 animate-spin" />
+                Mengunggah…
+              </>
+            ) : (
+              <>
+                <ImagePlus className="size-5" />
+                {uploadConfigured ? "Klik untuk unggah gambar" : "Upload belum dikonfigurasi"}
+              </>
+            )}
+          </button>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
         />
+
+        <div className="space-y-1">
+          <Label htmlFor="coverImage" className="text-muted-foreground text-xs font-normal">
+            atau tempel URL gambar
+          </Label>
+          <Input
+            id="coverImage"
+            value={form.coverImage ?? ""}
+            onChange={(e) => update("coverImage", e.target.value)}
+            placeholder="https://…"
+          />
+        </div>
       </div>
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={submitting}>
+        <Button type="submit" disabled={submitting || uploading}>
           {submitting ? "Menyimpan…" : post ? "Simpan Perubahan" : "Buat Tulisan"}
         </Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>
